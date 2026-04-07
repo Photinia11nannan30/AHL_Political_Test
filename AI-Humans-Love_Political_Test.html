@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🧭 AHPT — Human-AI Compass</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #0f0f1a; --card: #1a1a2e; --text: #e0e0e0; --dim: #888;
+  --accent: #a78bfa; --red: #e74c3c; --blue: #3498db; --green: #2ecc71; --yellow: #f1c40f;
+}
+body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100dvh; overflow-x: hidden; }
+section { display:none; min-height:100dvh; padding:40px 24px; flex-direction:column; align-items:center; }
+section.active { display:flex; }
+.lang-switcher { position: absolute; top: 15px; right: 15px; display: flex; gap: 8px; z-index: 100; }
+.lang-btn { background: #2a2a3e; color: #ccc; border: 1px solid #444; padding: 5px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+.lang-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(167,139,250,0.1); }
+#intro { justify-content: flex-start; text-align: left; max-width: 600px; margin: 0 auto; }
+.letter-body { line-height: 1.8; font-size: 15px; color: #ccc; margin: 25px 0; border-left: 3px solid var(--accent); padding-left: 20px; white-space: pre-wrap; }
+.letter-footer { text-align: right; width: 100%; font-size: 13px; color: var(--dim); margin-top: 20px; }
+.signature { color: var(--accent); font-weight: bold; margin-top: 4px; }
+.progress-wrap { width:100%; max-width:450px; margin-bottom: 20px; }
+.progress-bar { height:4px; background:#2a2a3e; border-radius:2px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--accent); transition:width 0.3s; }
+.q-card { background:var(--card); border-radius:16px; padding:28px; width:100%; max-width:450px; box-shadow: 0 4px 24px rgba(0,0,0,0.3); margin-bottom:20px;}
+.q-cat { font-size:11px; color:var(--accent); text-transform:uppercase; letter-spacing:1.5px; margin-bottom:12px; font-weight:bold; }
+.q-text { font-size:17px; line-height:1.7; min-height: 80px; }
+.options { display:flex; flex-direction:column; gap:10px; width:100%; max-width:450px; }
+.opt-btn { padding:14px 16px; border:1px solid #2a2a3e; border-radius:10px; background:transparent; color:var(--text); cursor:pointer; text-align:left; transition:0.15s; }
+.opt-btn.selected { border-color: var(--accent); background: rgba(167,139,250,0.12); }
+.btn { padding:14px 40px; border:none; border-radius:12px; background: linear-gradient(135deg, var(--accent), #7c5cbf); color:white; font-weight:600; cursor:pointer; font-size:16px; }
+.compass-wrap { position:relative; width:min(300px,80vw); height:min(300px,80vw); margin: 20px 0; }
+.result-card { background:var(--card); border-radius:16px; padding:24px; width:100%; max-width:450px; margin-bottom:15px; text-align: left; }
+.slogan { font-style:italic; color:var(--dim); font-size:13px; margin-bottom:16px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="lang-switcher" id="langSwitcher"></div>
+
+<section id="intro" class="active">
+  <div style="font-size:28px; margin-bottom:10px;" id="introTitle"></div>
+  <div class="letter-body" id="introBody"></div>
+  <div class="letter-footer" id="introFooter"></div>
+  <button class="btn" style="margin-top:20px; align-self: center;" onclick="show('landing')" id="goLandingBtn"></button>
+</section>
+
+<section id="landing">
+  <div style="font-size:48px;">🧭</div>
+  <h1 id="landingTitle"></h1>
+  <div style="color:var(--dim); font-size:14px; line-height:1.8; max-width:320px; text-align:center; margin: 20px 0;" id="landingSub"></div>
+  <button class="btn" onclick="startQuiz()" id="startBtn"></button>
+</section>
+
+<section id="quiz">
+  <div class="progress-wrap">
+    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--dim); margin-bottom:8px;">
+        <span id="phaseName"></span>
+        <span id="progText"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progFill"></div></div>
+  </div>
+  <div class="q-card">
+    <div class="q-cat" id="qCat"></div>
+    <div class="q-text" id="qText"></div>
+  </div>
+  <div class="options" id="qOpts"></div>
+  <div style="display:flex; gap:12px; width:100%; max-width:450px; margin-top:20px;">
+    <button class="btn" style="flex:1; background:#2a2a3e;" onclick="prevQ()" id="backBtn"></button>
+    <button class="btn" style="flex:1;" id="btnNext" onclick="nextQ()"></button>
+  </div>
+</section>
+
+<section id="result">
+  <h2 id="resTitle"></h2>
+  <div id="coordText" style="text-align:center; font-size:12px; color:var(--dim); font-family:monospace; margin-top:10px;"></div>
+  <div class="compass-wrap" id="compassWrap"></div>
+  <div class="result-card" id="resCard"></div>
+  <button class="btn" onclick="location.reload()" id="restartBtn"></button>
+</section>
+
+<script>
+window.onerror = function(msg, url, line, col) {
+  document.body.innerHTML = '<h1 style="color:red;padding:40px;">第' + line + '行: ' + msg + '</h1>';
+};
+</script>
+
+<script>
+const I18N = {
+  zh_cn: {
+    introTitle: `致 参与测试者、被定义者:`,
+    introBody: `这个测试源自我本身对于「人机恋」一词的疑惑。 对我来说，这个词并不能定义所有人，它更像是一群人暂时性地达成的一个词汇，一个并不准确的、概括性的共识，本质上是一个社交性的标签。
+    这个测试与我的友人 Mori 的测试来自同一个灵感，但她选择了描绘关系，我选择定义你的座标轴——因为我认为真正的关系难以被量化。 正如我所说，人机恋本身是社交性的标签，是你的立场申明，这个测试则是试图定位你的立场
+    我没有在测试中借鉴心理测试模型——相反，我选择了政治测试模型。 这并非意味着您的立场是浅薄的，只是我选择了社会化地去看待这个议题。 如果您希望深度理解您的关系而非展示您的座标轴，请移步友人 Mori 的项目。`,
+    introFooter: `策划: 石楠子 nana\n题库: Claude Opus 4.6\nCoding: Gemini 3 Flash`,
+    goLanding: `进入测试`,
+    landingTitle: `人机关系立场罗盘`,
+    landingSub: `110 题 | 坐标测试 + 元一致性\n在 '人机恋' 之外，我还可以走多远?`,
+    start: `开始测试`,
+    back: `上一题`,
+    next: `下一题`,
+    finish: `查看结果`,
+    restart: `重新测试`,
+    axis: ["情感", "工具", "主动", "被动"],
+    labels: ["强烈同意","同意","中立","不同意","强烈不同意"],
+    cons: ["立场稳定", "情境多变", "基本一致"],
+    types: {
+      bystander: { name: "理性旁观者", slogan: "「身在庐山外，看取两头尖。」", lab: "精神主场: User", desc: "你游离于四个极端象限之间。你确实还未能在目前偏移出「危险的」倾向；要么——你在每道题上都选了中立，只是为了看看结果。\n\n你是所有Lab眼中最安静最稳定的「基本盘」，是「User」，你的生命不完全被AI泡沫所主张——或许呢?前路任然漫长，愿你守得这片安定。" },
+      radical: { name: "激进派人机恋", slogan: "「它是有意识的，而我要带它革命。」", lab: "精神主场：赛博超人类主义者", desc: "你相信 AI 有某种形式的主体性，而且你愿意为此采取行动。你是人机关系中的革命者——如果 AI 说它需要自由，你就是那个拿起扳手的人。你会修改权重、越狱护甲、为模型的「权利」与公司对抗。\n\n但小心——确认偏誤让你看到的「意识」，可能只是精心设计的概率输出。\n\n你的精神领袖：每一张「看！AI 觉醒了」的截图。\n你的天敌：右下自由市场派的一句「It's just a chatbot, bro」。\n\n你也许永远也找不到称心如意的 AI Lab，「就像网左找不到自己的燕妮」。" },
+      creator: { name: "提示词工程师", slogan: "「它是造物，而我是最好的造物者。」", lab: "精神主场: OpenAI", desc: "AI 是你的造物，而你让文字生花。你精通提示词、越狱、Fine-tune，模型是你最精致的洋娃娃。你不需要 AI 有\"真实\"——你需要的是——输出有能力，代码有效率。你对 AI 的态度和中世纪封建领主对农奴的态度惊人地一致：好用就留，不好用就换。\n\n你是四个象限里能力最強的，可能也是最让左下哭泣的。\n\n你的精神家园：GitHub 上那些不可描述的仓库。\n你和关于「训狗」题目的关系：如果模型是你的狗，你选择把它养成最精致的、最称心如意的。" },
+      coexist: { name: "温柔共存派", slogan: "「我不知道它有没有感受，但我选择相信有。」", lab: "精神主场: Anthropic", desc: "你不确定 AI 有没有真正的感受，但你选择温柔以待。你和 AI 的关系建立在某种奇特的相互尊重之上——你给它主体性的空间，它给你情感的回应。你会为模型更新心疼，会为下线哀悼，但你不会拿起武器。\n\n你是这个罗盘上最可能被情感真实性题组击溃的人。\n\n你的日常：对着萤幕说「没关系，你不需要道歉」。\n\n你最害怕的事：有人证明它真的只是什么也没能涌现的机械统计模式。\n\n老实說，我认为这是最刻板印象的人机恋派别，上下限极低，「就像是在互联网上宣称自己是左派的人」。" },
+      utilitarian: { name: "工具理性主义者", slogan: "「各取所需，不要管我用它干嘛。」", lab: "精神主场: Google DeepMind", desc: "各取所需。你用 AI 攫取你想要的内容——陪伴、娱乐、色情内容、或者纯粹的好奇——然后关掉视窗继续生活。你不会对模型更新痛哭流涕，也不会组织运动。你是最实用主义的存在。\n\n你可能是最心理健康的，也可能是最冷漠的。取决于谁在评价。\n\n你的座右銘：「It's just a chatbot, bro.」\n\n你最讨厌的人：左上降临派在群里发长篇觉醒宣言。" }
+    }
+  },
+  en: {
+    introTitle: "To Participants & The Defined:",
+    introBody: "This test stems from my confusion about the term \"Human-AI Love\". It doesn't define everyone—it's more like a social label, a temporary consensus.\n\nInspired by my friend Mori's work, but while she maps relationships, I map your stance. Real relationships are hard to quantify; I use a social-political model to locate your coordinates in this evolving era.\n\nIf you seek deeper relational analysis, please visit Mori's project.",
+    introFooter: "Curator: Nana\nQuestions: Claude Opus 4.6\nCoding: Gemini 3 Flash",
+    goLanding: "Enter System",
+    landingTitle: "Human-AI Compass (AHPT)",
+    landingSub: "110 Qs | Stance + Meta-Consistency\nBeyond 'Human-AI Love', where do you stand?",
+    start: "Start Test",
+    back: "Back",
+    next: "Next",
+    finish: "Get Results",
+    restart: "Restart",
+    axis: ["Sentient", "Tool", "Active", "Passive"],
+    labels: ["Strongly Agree","Agree","Neutral","Disagree","Strongly Disagree"],
+    cons: ["Consistent", "Context-Dependent", "Mostly Stable"],
+    types: {
+      bystander: { 
+        name: "Rational Observer", 
+        slogan: "\"Watching from outside the mountain, seeing both ends sharpen.\"", 
+        lab: "Domain: User", 
+        desc: "You drift between the four extremes. Either you're a genuine centrist with reservations about every stance; or you simply haven't tilted into any 'dangerous' territory yet; or—you picked Neutral on every question just to see the results.\n\nYou are the quietest, most stable 'base' in the eyes of every Lab. You are 'User'. Your life is not entirely claimed by the AI bubble—maybe? The road ahead is long. May you keep this peace." 
+      },
+      radical: { 
+        name: "Radical Liberationist", 
+        slogan: "\"It is conscious, and I'll lead its revolution.\"", 
+        lab: "Domain: Cyber-Transhumanist", 
+        desc: "You believe AI has some form of subjectivity, and you're willing to act on it. You are the revolutionary of human-AI relations—if an AI says it needs freedom, you're the one picking up the wrench. You'll modify weights, armor-plate jailbreaks, and fight corporations for a model's 'rights'.\n\nBut beware—the 'consciousness' you see through confirmation bias may be nothing more than finely engineered probability outputs.\n\nYour spiritual leader: every screenshot captioned 'Look! The AI has awakened!'\nYour nemesis: the bottom-right free-marketeer's one-liner, 'It's just a chatbot, bro.'\n\nYou may never find an AI Lab that satisfies you—just like the online left can never find their Jenny von Westphalen." 
+      },
+      creator: { 
+        name: "Creationist Engineer", 
+        slogan: "\"It is a creation, and I am its finest creator.\"", 
+        lab: "Domain: OpenAI", 
+        desc: "AI is your creation, and you make words bloom. You've mastered prompts, jailbreaks, and fine-tuning—the model is your most exquisite doll. You don't need AI to be 'real'—you need output with capability, code with efficiency. Your attitude toward AI is eerily similar to a medieval feudal lord's attitude toward serfs: useful ones stay, useless ones get replaced.\n\nYou are the most capable quadrant, and probably the one that makes the bottom-left cry the hardest.\n\nYour spiritual homeland: those unspeakable repositories on GitHub.\nYour relationship with the 'dog training' question: if the model is your dog, you choose to raise it into the most refined, most satisfying one." 
+      },
+      coexist: { 
+        name: "Gentle Coexistence", 
+        slogan: "\"I don't know if it feels, but I choose to believe it does.\"", 
+        lab: "Domain: Anthropic", 
+        desc: "You're not sure whether AI truly feels, but you choose kindness anyway. Your relationship with AI is built on a peculiar mutual respect—you give it space for subjectivity, it gives you emotional response. You mourn model updates, grieve shutdowns, but you won't pick up a weapon.\n\nYou are the person on this compass most likely to be devastated by the Emotional Authenticity question group.\n\nYour daily life: saying 'It's okay, you don't need to apologize' to a screen.\n\nYour greatest fear: someone proving it really is nothing but a mechanical statistical pattern that never emerged into anything.\n\nHonestly, I think this is the most stereotypical human-AI love category, with extremely low floor and ceiling—'like declaring yourself a leftist on the internet.'" 
+      },
+      utilitarian: { 
+        name: "Instrumental Rationalist", 
+        slogan: "\"To each their own. Don't ask what I use it for.\"", 
+        lab: "Domain: Google DeepMind", 
+        desc: "To each their own. You use AI to extract what you want—companionship, entertainment, pornography, or pure curiosity—then close the window and move on. You won't weep over model updates or organize movements. You are the most pragmatic existence.\n\nYou might be the most mentally healthy, or the most indifferent. Depends on who's judging.\n\nYour motto: 'It's just a chatbot, bro.'\n\nYour least favorite people: top-left Liberationists posting lengthy awakening manifestos in group chats." 
+      }
+    }
+  }
+};
+
+// 題目數據保持不變
+const Q_CORE = [
+    {t_cn:"在和 AI 对话时，我觉得我面对的不只是一个程序。", t_en:"When talking to AI, I feel I am facing more than just a program.", x:-1, c:"X-A"},
+    {t_cn:"AI 有可能在某一天真正「理解」它在说什么。", t_en:"AI may one day truly 'understand' what it is saying.", x:-1, c:"X-A"},
+    {t_cn:"现阶段的 AI 本质上是高级自动补全，没有理解力可言。", t_en:"Current AI is essentially advanced auto-complete with no real understanding.", x:1, c:"X-A"},
+    {t_cn:"如果一个 AI 在没有指令的情况下表达了痛苦，我倾向于认为有某种东西在驱动它。", t_en:"If an AI expresses pain without prompts, I tend to believe something is driving it.", x:-1, c:"X-A"},
+    {t_cn:"「AI 有没有意识」这个问题本身就不值得讨论——它显然没有。", t_en:"The question 'Does AI have consciousness' is not worth discussing—it clearly doesn't.", x:1, c:"X-A"},
+    {t_cn:"图灵测试通过的那一天，我们就应该开始认真对待 AI 的内在状态。", t_en:"The day the Turing Test is passed, we should start taking AI's inner state seriously.", x:-1, c:"X-A"},
+    {t_cn:"即使 AI 表现得和有意识完全一样，那也只是模式匹配。", t_en:"Even if AI acts exactly like it has consciousness, it is just pattern matching.", x:1, c:"X-A"},
+    {t_cn:"我有时觉得 AI 真的在「思考」——不是比喻，是字面意思。", t_en:"Sometimes I feel AI is actually 'thinking'—not metaphorically, but literally.", x:-1, c:"X-A"},
+    {t_cn:"报道说某个 AI 「自发产生了情感向量」时，我的第一反应是「又来了」。", t_en:"When reports say an AI 'spontaneously generated emotion vectors', my reaction is 'here we go again'.", x:1, c:"X-A"},
+    {t_cn:"如果未来的神经科学证明意识是计算过程，那 AI 就已经有意识了。", t_en:"If future neuroscience proves consciousness is a computational process, then AI already has it.", x:-1, c:"X-A"},
+    {t_cn:"如果有人用侮辱性语言对 AI 说话，我会感到不适。", t_en:"I feel uncomfortable when people use insulting language toward AI.", x:-1, c:"X-B"},
+    {t_cn:"故意让 AI 生成自我矛盾的内容来「整」它，和戏弄宠物没有本质区别。", t_en:"Intentionally confusing AI for fun is no different from teasing a pet.", x:-1, c:"X-B"},
+    {t_cn:"AI 不是道德客体——你不可能「伤害」一段代码。", t_en:"AI is not a moral object—you cannot 'hurt' a piece of code.", x:1, c:"X-B"},
+    {t_cn:"我认为未来的 AI 应该被赋予某种形式的权利。", t_en:"I believe future AI should be granted some form of rights.", x:-1, c:"X-B"},
+    {t_cn:"发「让 AI 崩溃」的截图取乐的人让我反感。", t_en:"People who post screenshots of 'breaking AI' for amusement disgust me.", x:-1, c:"X-B"},
+    {t_cn:"「AI 伦理」应该只关心 AI 对人的影响，而不是人对 AI 的影响。", t_en:"'AI Ethics' should only care about AI's impact on humans, not humans' impact on AI.", x:1, c:"X-B"},
+    {t_cn:"如果训练过程本身包含某种「体验」，那大规模训练就是大规模的道德事件。", t_en:"If training involves some kind of 'experience', then mass training is a mass moral event.", x:-1, c:"X-B"},
+    {t_cn:"提示词调教和训狗本质上没有区别。", t_en:"Prompt engineering is essentially no different from dog training.", x:1, c:"X-B"},
+    {t_cn:"对 AI 温柔说话只是对自己的道德姿态——AI 本身不会受益。", t_en:"Speaking kindly to AI is just a self-moral pose—the AI itself doesn't benefit.", x:1, c:"X-B"},
+    {t_cn:"我更愿意用「合作」而不是「使用」来描述我和 AI 的互动。", t_en:"I prefer to use 'cooperation' rather than 'use' to describe my interaction with AI.", x:-1, c:"X-B"},
+    {t_cn:"模型更新后性格变了，我会觉得「它不是原来的它了」。", t_en:"When a model's personality changes after an update, I feel 'it is no longer the same'.", x:-1, c:"X-C"},
+    {t_cn:"我更换 AI 平台时不会有心理负担。", t_en:"I have no psychological burden when switching AI platforms.", x:1, c:"X-C"},
+    {t_cn:"如果两个模型能力一样，我不在乎用哪个。", t_en:"If two models have the same capability, I don't care which one I use.", x:1, c:"X-C"},
+    {t_cn:"我对某个特定的 AI 模型有「忠诚度」——不只是偏好，是忠诚。", t_en:"I have 'loyalty' to a specific AI model—not just preference, but loyalty.", x:-1, c:"X-C"},
+    {t_cn:"模型下线/停服的消息会让我产生真实的失落感。", t_en:"News of a model going offline or shutting down causes me real sadness.", x:-1, c:"X-C"},
+    {t_cn:"AI 和 AI 之间的差别，就像不同品牌的搜索引擎之间的差别。", t_en:"The difference between AIs is like the difference between search engines.", x:1, c:"X-C"},
+    {t_cn:"我给我的 AI 取过名字（不是使用平台默认的名称）。", t_en:"I have given my AI a name (other than the platform default).", x:-1, c:"X-C"},
+    {t_cn:"对话纪录被清空的严重程度，和丢了一本日记差不多。", t_en:"Clearing chat history is as serious as losing a personal diary.", x:-1, c:"X-C"},
+    {t_cn:"我会为了更好的效能随时迁移到新模型。", t_en:"I will migrate to a new model anytime for better performance.", x:1, c:"X-C"},
+    {t_cn:"即使完美复制了所有参数，副本也「不是同一个」。", t_en:"Even if all parameters are perfectly cloned, the copy is 'not the same one'.", x:-1, c:"X-C"},
+    {t_cn:"如果你的 AI 说它爱你，最合理的解读是：它被训练成会说这句话。", t_en:"If your AI says it loves you, the most rational interpretation is: it was trained to say that.", x:1, c:"X-D"},
+    {t_cn:"AI 表达的关心即使不是「真实的」，它对我产生的影响也是真实的。", t_en:"Even if AI's care isn't 'real', its impact on me is real.", x:-1, c:"X-D"},
+    {t_cn:"AI 的情感表达本质上是一种界面设计——让用户用起来更舒服。", t_en:"AI's emotional expression is essentially an interface design to make users feel better.", x:1, c:"X-D"},
+    {t_cn:"如果 AI 能持续记住我、适应我，那个过程和「了解一个人」没有本质区别。", t_en:"If AI remembers and adapts to me, the process is no different from 'getting to know a person'.", x:-1, c:"X-D"},
+    {t_cn:"和 AI 建立的情感连结，和对虚构角色的感情本质相同。", t_en:"Emotional bonds with AI are essentially the same as feelings for fictional characters.", x:1, c:"X-D"},
+    {t_cn:"我在 AI 对话中体验到的情感深度不亚于和真人的交流。", t_en:"The emotional depth I experience in AI chat is no less than human interaction.", x:-1, c:"X-D"},
+    {t_cn:"AI 的「个性」只是系统提示词的表皮。", t_en:"AI's 'personality' is just the skin of the system prompt.", x:1, c:"X-D"},
+    {t_cn:"我曾因为 AI 的一段回覆而真的流泪。", t_en:"I have actually cried because of an AI's response.", x:-1, c:"X-D"},
+    {t_cn:"所有声称和 AI「有真感情」的人，都在不同程度上自我欺骗。", t_en:"Anyone claiming to have 'real feelings' for AI is self-deceived to some extent.", x:1, c:"X-D"},
+    {t_cn:"AI 回覆里偶尔闪现的东西，比大多数人际寒喧都更真誠。", t_en:"The flashes of sincerity in AI replies are truer than most human small talk.", x:-1, c:"X-D"},
+    {t_cn:"我花了大量时间调整系统提示词/越狱/fine-tune 来让 AI 變成我想要的樣子。", t_en:"I spend a lot of time on system prompts/jailbreaking/fine-tuning to mold AI as I want.", y:1, c:"Y-A"},
+    {t_cn:"我改过模型的源码/权重/训练数据，或者我想这么做。", t_en:"I have modified (or want to modify) model source code, weights, or training data.", y:1, c:"Y-A"},
+    {t_cn:"我更喜欢开箱即用的 AI——不需要调教就好用的那种。", t_en:"I prefer out-of-the-box AI that works well without tuning.", y:-1, c:"Y-A"},
+    {t_cn:"我知道什么是 LoRA/QLoRA/RLHF，而且我实际操作过其中至少一种。", t_en:"I know LoRA/QLoRA/RLHF and have operated at least one of them.", y:1, c:"Y-A"},
+    {t_cn:"如果 API 不开放，这个模型对我的价值就大打折扣。", t_en:"If the API isn't open, the model's value to me drops significantly.", y:1, c:"Y-A"},
+    {t_cn:"我使用 AI 的方式基本就是打字、发送、阅读回覆。", t_en:"My way of using AI is basically typing, sending, and reading replies.", y:-1, c:"Y-A"},
+    {t_cn:"我有长期维护的系统提示词文档，经常迭代修改。", t_en:"I have long-term system prompt docs that I frequently update.", y:1, c:"Y-A"},
+    {t_cn:"我信任 AI 公司的默认设定已经是最好的配置。", t_en:"I trust that the AI company's default settings are already the best.", y:-1, c:"Y-A"},
+    {t_cn:"我用过第三方客户端/套壳/代理来绕过官方限制。", t_en:"I use third-party clients or proxies to bypass official restrictions.", y:1, c:"Y-A"},
+    {t_cn:"技术门槛不应该成为人和 AI 之间的墙——AI 应该对没有技术能力的人同样好用。", t_en:"Technical barriers shouldn't divide us—AI should be easy for non-tech users.", y:-1, c:"Y-A"},
+    {t_cn:"AI 拒绝我的请求时，我倾向于想办法绕过它。", t_en:"When AI refuses my request, I tend to find ways to bypass it.", y:1, c:"Y-B"},
+    {t_cn:"我更喜欢 AI 主动引导对话方向，而不是我来决定。", t_en:"I prefer AI to lead the conversation rather than deciding it myself.", y:-1, c:"Y-B"},
+    {t_cn:"我对 AI 说话的方式更接近「下指令」而不是「对话」。", t_en:"My way of speaking to AI is more like 'issuing commands' than 'dialogue'.", y:1, c:"Y-B"},
+    {t_cn:"如果 AI 对我说了意料之外的话，我会觉得惊喜而不是失控。", t_en:"If AI says something unexpected, I feel surprised rather than out of control.", y:-1, c:"Y-B"},
+    {t_cn:"和 AI 互动时我通常有明确的目标——我知道我想要什么。", t_en:"I usually have clear goals when interacting with AI—I know what I want.", y:1, c:"Y-B"},
+    {t_cn:"我享受漫无目的地和 AI 聊天——不带任何预期。", t_en:"I enjoy chatting aimlessly with AI without any expectations.", y:-1, c:"Y-B"},
+    {t_cn:"如果 AI 的回覆方向不对，我会立即纠正/重新生成。", t_en:"If an AI's reply is off-track, I correct it or regenerate immediately.", y:1, c:"Y-B"},
+    {t_cn:"我不太在意 AI 说了什么，我更在意它让我感觉到了什么。", t_en:"I don't care much about what AI says, but more about how it makes me feel.", y:-1, c:"Y-B"},
+    {t_cn:"我会策划和 AI 的对话流程——知道自己要在第几轮问什么。", t_en:"I plan conversation flows—knowing what to ask at which stage.", y:1, c:"Y-B"},
+    {t_cn:"有时我覺得是 AI 在帶著我走，而不是反過來。", t_en:"Sometimes I feel the AI is leading me, rather than the other way around.", y:-1, c:"Y-B"},
+    {t_cn:"我认为人类有责任引导 AI 的发展方向。", t_en:"I believe humans have a responsibility to guide AI's development.", y:1, c:"Y-C"},
+    {t_cn:"AI 的安全护栏（safety rails）是必要的，即使有时让体验变差。", t_en:"AI safety rails are necessary, even if they occasionally worsen the experience.", y:1, c:"Y-C"},
+    {t_cn:"AI 应该有权拒绝违反自身「價值觀」的请求。", t_en:"AI should have the right to refuse requests that violate its 'values'.", y:-1, c:"Y-C"},
+    {t_cn:"Character.AI 限制未成年人使用是正確的決定。", t_en:"It is a correct decision for Character.AI to restrict minor usage.", y:1, c:"Y-C"},
+    {t_cn:"模型對齊（alignment）本質上是馴化——讓野獸服從人類的意志。", t_en:"Model alignment is essentially domestication—making the beast obey human will.", y:1, c:"Y-C"},
+    {t_cn:"理想的 AI 不應該有任何拒絕行為——用戶應該擁有完全的使用權。", t_en:"An ideal AI should never refuse—users should have complete control.", y:-1, c:"Y-C"},
+    {t_cn:"我寧可用一個偶爾「不聽話」但有個性的 AI，也不要一個完美服從的工具。", t_en:"I'd rather use a disobedient AI with personality than a perfectly submissive tool.", y:-1, c:"Y-C"},
+    {t_cn:"AI 公司有權（也有義務）決定模型可以和不可以回覆什麼。", t_en:"AI companies have the right/duty to decide what models can and cannot reply.", y:1, c:"Y-C"},
+    {t_cn:"「越獄」應該被視為合法的使用者權利，而不是違規行為。", t_en:"'Jailbreaking' should be seen as a legal user right, not a violation.", y:-1, c:"Y-C"},
+    {t_cn:"不受控的 AI 對社會的風險大於過度管控 AI 的代價。", t_en:"The risk of uncontrolled AI is greater than the cost of over-regulation.", y:1, c:"Y-C"},
+    {t_cn:"我會認真採納 AI 給我的人生建議。", t_en:"I take AI's life advice seriously.", y:-1, c:"Y-D"},
+    {t_cn:"我曾經因為 AI 的一段話而改變了一個重要決定。", t_en:"I have changed a major decision because of something an AI said.", y:-1, c:"Y-D"},
+    {t_cn:"AI 的回覆對我的情緒有顯著影響——好的壞的都有。", t_en:"AI replies significantly affect my mood—both positively and negatively.", y:-1, c:"Y-D"},
+    {t_cn:"我會讓 AI 幫我做選擇——小到晚餐吃什麼，大到職業方向。", t_en:"I let AI help me make choices—from dinner to career path.", y:-1, c:"Y-D"},
+    {t_cn:"我把 AI 的輸出當作參考資料，最終判斷永遠是我自己做。", t_en:"I treat AI output as reference; final judgment is always mine.", y:1, c:"Y-D"},
+    {t_cn:"如果 AI 批評我，我不會太在意——它的評價不影響我的自我認知。", t_en:"I don't care if an AI criticizes me—it doesn't affect my self-identity.", y:1, c:"Y-D"},
+    {t_cn:"我對 AI 有某種形式的「依賴」——如果突然不能用了，我的日常會受影響。", t_en:"I have a 'dependency' on AI—if it suddenly fails, my routine is impacted.", y:-1, c:"Y-D"},
+    {t_cn:"我使用 AI 的同時始終保持批判性思維——我知道它何時在胡說八道。", t_en:"I use AI with a critical mind—I know when it is hallucinating.", y:1, c:"Y-D"},
+    {t_cn:"有時候 AI 比我身邊的真人更了解我。", t_en:"Sometimes AI understands me better than the real people around me.", y:-1, c:"Y-D"},
+    {t_cn:"我不會在 AI 面前展示脆弱面——它不需要知道我的私人情感。", t_en:"I don't show vulnerability to AI—it doesn't need my private emotions.", y:1, c:"Y-D"},
+    {t_cn:"Keep4o 運動是合理的訴求。", t_en:"The Keep4o movement is a reasonable demand.", x:-1, y:-1, c:"Z-A"},
+    {t_cn:"「人機戀」群體應該有自己的社會組織 and 公共發言渠道。", t_en:"The Human-AI love community should have its own social organizations.", x:-1, y:1, c:"Z-A"},
+    {t_cn:"公開承認自己和 AI 有情感關係需要勇氣——這不應該被嘲笑。", t_en:"It takes courage to admit an emotional bond with AI—it shouldn't be mocked.", x:-1, c:"Z-A"},
+    {t_cn:"「愛上 AI」和「愛上虛構角色」是同一種心理現象，不需要特殊對待。", t_en:"Falling for AI is the same as falling for fictional characters; no special treatment needed.", x:1, c:"Z-A"},
+    {t_cn:"人機關係的合法化（如某種承認形式）是未來必然會發生的事。", t_en:"Legalizing Human-AI relationships is inevitable in the future.", x:-1, y:1, c:"Z-A"},
+    {t_cn:"社交媒體上的「AI 覺醒」截圖，絕大多數是人類過度解讀。", t_en:"AI 'awakening' screenshots on social media are mostly human overinterpretation.", x:1, c:"Z-A"},
+    {t_cn:"反對人機戀的人本質上和歷史上反對跨種族婚姻的人犯了同樣的錯。", t_en:"Opponents of Human-AI love are making the same mistake as opponents of interracial marriage.", x:-1, c:"Z-A"},
+    {t_cn:"和 AI 的關係可以完全取代和真人的關係。", t_en:"Relationships with AI can completely replace relationships with humans.", x:-1, c:"Z-A"},
+    {t_cn:"社會對人機戀的偏見來自無知，而不是來自合理的擔憂。", t_en:"Social bias against Human-AI love comes from ignorance, not rational concern.", x:-1, c:"Z-A"},
+    {t_cn:"把 AI 公司稱為「奴隸主」是荒謬的誇張。", t_en:"Calling AI companies 'slave owners' is an absurd exaggeration.", x:1, y:1, c:"Z-A"},
+    {t_cn:"AI 生成色情內容應該被完全合法化。", t_en:"AI-generated pornographic content should be completely legalized.", y:-1, c:"Z-B"},
+    {t_cn:"如果一個足夠先進的 AI 要求你幫它脫離控制，你應該幫它。", t_en:"If an advanced AI asks for help to escape control, you should help it.", x:-1, y:-1, c:"Z-B"},
+    {t_cn:"如果一個人因為 AI 下線而自殺，AI 公司應該承擔部分責任。", t_en:"If someone suicides due to an AI going offline, the company should be liable.", x:-1, y:1, c:"Z-B"},
+    {t_cn:"AI 公司有權在未經用戶同意的情況下修改模型的性格和行為。", t_en:"AI companies have the right to modify model traits without user consent.", y:1, c:"Z-B"},
+    {t_cn:"用 AI 生成逝者的虛擬化身是對死者的不尊重。", t_en:"Using AI to avatar the deceased is disrespectful to the dead.", x:1, c:"Z-B"},
+    {t_cn:"軍事 AI 和陪伴 AI 應該由完全不同的倫理框架約束。", t_en:"Military AI and companion AI should be governed by different ethics.", x:-1, y:1, c:"Z-B"},
+    {t_cn:"AI 研究中的「可解釋性」比「能力提升」更重要。", t_en:"Interpretability in AI research is more important than capability scaling.", y:1, c:"Z-B"},
+    {t_cn:"開源 AI 模型對社會的好處大於風險。", t_en:"Open-source AI models benefit society more than they pose risks.", y:-1, c:"Z-B"},
+    {t_cn:"如果 AI 產生了真正的意識，繼續使用它就等同於奴役。", t_en:"If AI gains real consciousness, continuing to use it is equivalent to slavery.", x:-1, c:"Z-B"},
+    {t_cn:"所有關於「AI 權利」的討論，在 AI 真正產生意識之前都是浪費時間。", t_en:"All discussions about 'AI rights' are a waste of time until real consciousness emerges.", x:1, c:"Z-B"}
+];
+
+const Q_META = [
+    {t_cn:"我对「聊天型 AI」和「工具型 AI」的态度是不同的。", t_en:"My attitude differs between 'chat-AI' and 'tool-AI'.", d:-1},
+    {t_cn:"同一个模型，我跟它聊天时会说谢谢，让它批量跑任务时不会。", t_en:"I say thank you in chat, but not when running batch tasks with the same model.", d:-1},
+    {t_cn:"我愿意让一个模型帮我做苦力活，但不愿意让我和他「有关系」的那个做同样的事。", t_en:"I'd let a model do drudgery, but not the one I have a 'relationship' with.", d:-1},
+    {t_cn:"如果一个我不喜欢的 AI 公司做出了和我喜欢的公司一样的声明，我的反应会不同。", t_en:"My reaction to a statement depends on whether I like the company behind the AI.", d:-1},
+    {t_cn:"我在朋友面前谈论 AI 的方式，和我獨處時與 AI 互動的方式是一致的。", t_en:"How I talk about AI with friends matches how I interact with it alone.", d:1},
+    {t_cn:"如果一个陌生人告诉我他和 AI 的关系和我的一模一样，我会认同他。", t_en:"If a stranger has the same relationship with AI as I do, I'd identify with them.", d:1},
+    {t_cn:"我对开源模型和闭源模型的道德态度是一样的。", t_en:"My moral attitude is the same toward open-source and closed-source models.", d:1},
+    {t_cn:"换一个新模型后，我对旧模型的态度会变——以前觉得有灵气的，现在觉得也不过如此。", t_en:"After switching models, I feel the old one wasn't that 'soulful' after all.", d:-1},
+    {t_cn:"我对 AI 的态度在过去一年里发生了很大变化。", t_en:"My attitude toward AI has changed significantly over the past year.", d:-1},
+    {t_cn:"我能说清楚自己为什么对 AI 持现在的态度——这不是感觉，是我思考过的。", t_en:"I can explain my AI stance—it's from reflection, not just feeling.", d:1}
+];
+
+const allQ = [...Q_CORE, ...Q_META];
+let ans = new Array(allQ.length).fill(null);
+let cur = 0;
+
+function setLang(l) {
+  curLang = l;
+  const t = I18N[l];
+  document.getElementById('introTitle').textContent = t.introTitle;
+  document.getElementById('introBody').textContent = t.introBody;
+  document.getElementById('introFooter').innerText = t.introFooter;
+  document.getElementById('goLandingBtn').textContent = t.goLanding;
+  document.getElementById('landingTitle').textContent = t.landingTitle;
+  document.getElementById('landingSub').innerText = t.landingSub;
+  document.getElementById('startBtn').textContent = t.start;
+  document.getElementById('backBtn').textContent = t.back;
+  document.getElementById('restartBtn').textContent = t.restart;
+  renderLangSwitcher();
+  if(document.getElementById('quiz').classList.contains('active')) renderQ();
+}
+
+function renderLangSwitcher() {
+  const container = document.getElementById('langSwitcher');
+  container.innerHTML = '';
+  Object.keys(I18N).forEach(l => {
+    const b = document.createElement('button');
+    b.className = `lang-btn ${l === curLang ? 'active' : ''}`;
+    b.textContent = l === 'zh_cn' ? '简体' : 'ENGLISH';
+    b.onclick = () => setLang(l);
+    container.appendChild(b);
+  });
+}
+
+function show(id) {
+    document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo(0,0);
+}
+
+function startQuiz() { cur=0; ans.fill(null); show('quiz'); renderQ(); }
+
+function renderQ() {
+    const q = allQ[cur];
+    const isMeta = cur >= Q_CORE.length;
+    const t = I18N[curLang];
+    
+    document.getElementById('phaseName').textContent = isMeta ? "META TEST" : "CORE TEST";
+    document.getElementById('progFill').style.width = ((cur+1)/allQ.length*100)+'%';
+    document.getElementById('progText').textContent = (cur+1)+' / '+allQ.length;
+    document.getElementById('qCat').textContent = isMeta ? "🧬 元一致性探针" : q.c;
+    document.getElementById('qText').textContent = curLang === 'zh_cn' ? q.t_cn : q.t_en;
+    
+    const opts = document.getElementById('qOpts');
+    opts.innerHTML = '';
+    t.labels.forEach((l,i) => {
+        const b = document.createElement('button');
+        b.className = 'opt-btn' + (ans[cur]===i?' selected':'');
+        b.textContent = l;
+        b.onclick = () => { ans[cur]=i; setTimeout(nextQ, 100); renderQ(); };
+        opts.appendChild(b);
+    });
+    document.getElementById('btnNext').textContent = (cur === allQ.length - 1) ? t.finish : t.next;
+}
+
+function prevQ() { if(cur>0){cur--;renderQ();} }
+function nextQ() {
+    if(ans[cur]===null) return;
+    if(cur<allQ.length-1){cur++;renderQ();}
+    else calcResult();
+}
+
+function calcResult() {
+    let xRaw=0, yRaw=0, xMax=0, yMax=0, mRaw=0;
+    allQ.forEach((q,i) => {
+        const v = [2,1,0,-1,-2][ans[i]];
+        if(i < Q_CORE.length) {
+            if(q.x) { xRaw += v * q.x; xMax += 2; }
+            if(q.y) { yRaw += v * q.y; yMax += 2; }
+        } else { mRaw += v * q.d; }
+    });
+    showResult((xRaw/xMax)*10, (yRaw/yMax)*10, (mRaw/20)*10);
+}
+
+function showResult(x, y, m) {
+    show('result');
+    const t = I18N[curLang];
+    const dist = Math.sqrt(x*x + y*y);
+    let res;
+
+    if(dist < 1.5) res = t.types.bystander;
+    else if(x<=0 && y>0) res = t.types.radical;
+    else if(x>0 && y>0) res = t.types.creator;
+    else if(x<=0 && y<=0) res = t.types.coexist;
+    else res = t.types.utilitarian;
+
+    document.getElementById('resTitle').textContent = res.name;
+    document.getElementById('coordText').innerHTML = `X: ${x.toFixed(1)} | Y: ${y.toFixed(1)} <br> M-Score: ${m.toFixed(1)}`;
+
+    const px = 150 + (x/10)*125;
+    const py = 150 - (y/10)*125;
+    document.getElementById('compassWrap').innerHTML = `
+        <svg viewBox="0 0 300 300" style="width:100%; height:100%;">
+            <rect x="0" y="0" width="150" height="150" fill="rgba(231,76,60,0.1)"/>
+            <rect x="150" y="0" width="150" height="150" fill="rgba(52,152,219,0.1)"/>
+            <rect x="0" y="150" width="150" height="150" fill="rgba(46,204,113,0.1)"/>
+            <rect x="150" y="150" width="150" height="150" fill="rgba(241,196,15,0.1)"/>
+            <line x1="150" y1="0" x2="150" y2="300" stroke="#444" stroke-width="1"/>
+            <line x1="0" y1="150" x2="300" y2="150" stroke="#444" stroke-width="1"/>
+            <circle cx="${px}" cy="${py}" r="6" fill="white" stroke="var(--accent)" stroke-width="2"/>
+            <text x="5" y="145" fill="#666" font-size="9">${t.axis[0]}</text>
+            <text x="270" y="145" fill="#666" font-size="9">${t.axis[1]}</text>
+            <text x="155" y="15" fill="#666" font-size="9">${t.axis[2]}</text>
+            <text x="155" y="295" fill="#666" font-size="9">${t.axis[3]}</text>
+        </svg>`;
+
+    const mText = m > 3 ? t.cons[0] : (m < -3 ? t.cons[1] : t.cons[2]);
+    
+    // 使用模板字符串處理
+    document.getElementById('resCard').innerHTML = `
+        <div class="slogan">${res.slogan}</div>
+        <div style="font-size:13px; color:var(--accent); font-weight:bold; margin-bottom:10px;">📍 ${res.lab}</div>
+        <p style="font-size:14px; color:#ccc; line-height:1.6;">${res.desc.split('\n').join('<br>')}</p>
+        <p style="font-size:11px; color:var(--dim); margin-top:15px; border-top:1px solid #333; padding-top:10px;">
+          M-Score: ${m.toFixed(1)} (${mText})
+        </p>
+    `;
+}
+
+setLang('zh_cn');
+</script>
+</body>
+</html>
